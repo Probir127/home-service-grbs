@@ -1,0 +1,206 @@
+{% extends "admin/index.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="{% static 'admin/css/premium_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'admin/css/mobile_responsive.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="premium-dashboard">
+    <!-- Stats Cards Row -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <h3 class="stat-value" id="visitors-today">{{ visitors_today }}</h3>
+                <p class="stat-label">Visitors Today</p>
+                <span class="stat-change positive">+{{ visitors_change }}%</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ quotes_today }}</h3>
+                <p class="stat-label">Quote Requests</p>
+                <span class="stat-change positive">+{{ quotes_change }}%</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">✉️</div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ messages_today }}</h3>
+                <p class="stat-label">Messages</p>
+                <span class="stat-change">Today</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ conversion_rate }}%</h3>
+                <p class="stat-label">Conversion Rate</p>
+                <span class="stat-change">Avg</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Visitor Trends (Last 7 Days)</h3>
+            <canvas id="visitorChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3>Top Pages</h3>
+            <canvas id="topPagesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="activity-card">
+        <h3>Recent Activity</h3>
+        <div class="activity-list" id="activity-feed">
+            {% for activity in recent_activity %}
+            <div class="activity-item">
+                <div class="activity-icon">{{ activity.icon }}</div>
+                <div class="activity-content">
+                    <p class="activity-text">{{ activity.text }}</p>
+                    <span class="activity-time">{{ activity.time }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="/admin/request/request/overview/" class="action-btn"
+                style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);">
+                <span class="btn-icon">📊</span>
+                Advanced Analytics
+            </a>
+            <a href="/admin/contact/quoterequest/?status=new" class="action-btn">
+                <span class="btn-icon">📋</span>
+                View New Quotes
+                <span class="btn-badge">{{ new_quotes }}</span>
+            </a>
+            <a href="/admin/export/messages/" class="action-btn">
+                <span class="btn-icon">✉️</span>
+                View Messages
+            </a>
+            <a href="/admin/export/analytics/" class="action-btn" download>
+                <span class="btn-icon">📊</span>
+                Export Analytics
+            </a>
+            <a href="/admin/core/siteconfiguration/1/change/" class="action-btn">
+                <span class="btn-icon">⚙️</span>
+                Site Settings
+            </a>
+            <button onclick="clearAnalytics()" class="action-btn danger">
+                <span class="btn-icon">🗑️</span>
+                Clear Analytics
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    {% load static %}
+    // Get CSRF token
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    // Clear Analytics Function
+    function clearAnalytics() {
+        if (!confirm('⚠️ Are you sure you want to delete ALL visitor analytics data?\n\nThis action CANNOT be undone!')) {
+            return;
+        }
+
+        fetch('/admin/clear/analytics/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    window.location.reload();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('❌ Network error: ' + error.message);
+            });
+    }
+</script>
+
+<script>
+    // Visitor Trends Chart
+    const visitorCtx = document.getElementById('visitorChart').getContext('2d');
+    new Chart(visitorCtx, {
+        type: 'line',
+        data: {
+            labels: {{ visitor_labels| safe }},
+        datasets: [{
+            label: 'Visitors',
+            data: {{ visitor_data| safe }},
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true
+        }]
+    },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+    // Top Pages Chart
+    const pagesCtx = document.getElementById('topPagesChart').getContext('2d');
+    new Chart(pagesCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ top_pages_labels| safe }},
+        datasets: [{
+            label: 'Views',
+            data: {{ top_pages_data| safe }},
+        backgroundColor: '#f59e0b',
+        borderRadius: 6
+        }]
+    },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+</script>
+{% endblock %}
