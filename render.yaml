@@ -2,8 +2,8 @@ services:
   - type: web
     name: home-service-grbs
     runtime: python
-    buildCommand: "cd backend && ./build.sh"
-    startCommand: "cd backend && gunicorn grbs_project.wsgi:application"
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn grbs_project.wsgi:application"
     envVars:
       - key: SECRET_KEY
         generateValue: true
