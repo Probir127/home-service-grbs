@@ -32,12 +32,15 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 if not ALLOWED_HOSTS or ALLOWED_HOSTS == [""]:
-    # Fallback for local development if not set
-    if DEBUG:
+    # Auto-detect Render's external hostname
+    render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    if render_hostname:
+        ALLOWED_HOSTS = [render_hostname]
+    elif DEBUG:
         ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
     else:
         raise ValueError(
-            "ALLOWED_HOSTS environment variable is required in production."
+            "ALLOWED_HOSTS or RENDER_EXTERNAL_HOSTNAME environment variable is required in production."
         )
 
 
